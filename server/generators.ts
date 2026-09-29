@@ -457,8 +457,10 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "🚀 در حال آماده‌سازی و نصب خودکار تمامی پیش‌نیازهای هسته (Zero-Config Auto-Install)..."
-apt-get update -y
-apt-get install -y curl wget unzip jq python3 python3-pip autossh socat sshpass iptables
+mkdir -p /etc/apt/sources.list.d/disabled_repos 2>/dev/null || true
+mv -f /etc/apt/sources.list.d/*docker* /etc/apt/sources.list.d/disabled_repos/ 2>/dev/null || true
+apt-get update -y || true
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl wget unzip jq python3 autossh socat sshpass iptables || DEBIAN_FRONTEND=noninteractive apt-get install -y curl python3 autossh socat
 
 INSTALL_DIR="/opt/v2ray-balancer"
 TUNNEL_DIR="/opt/reverse-tunnel"

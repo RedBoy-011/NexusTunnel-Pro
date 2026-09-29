@@ -19,9 +19,17 @@ echo -e "\033[0;32m=============================================================
 echo -e "\033[0;32m       NexusTunnel Pro - سامانه لودبالانسر و تانلینگ معکوس       \033[0m"
 echo -e "\033[0;32m==================================================================\033[0m"
 
-echo -e "\033[1;33m🚀 ۱. در حال نصب خودکار تمامی پیش‌نیازهای هسته اوبونتو...\033[0m"
-apt-get update -y
-apt-get install -y curl wget unzip jq python3 python3-pip autossh socat sshpass iptables
+echo -e "\033[1;33m🚀 ۱. در حال آماده‌سازی مخازن و نصب پیش‌نیازهای هسته اوبونتو...\033[0m"
+
+# غیرفعال کردن مخازن تحریمی شخص ثالث (مانند docker) که روی آی‌پی ایران ارور ۴۰۳ می‌دهند
+mkdir -p /etc/apt/sources.list.d/disabled_repos 2>/dev/null || true
+mv -f /etc/apt/sources.list.d/*docker* /etc/apt/sources.list.d/disabled_repos/ 2>/dev/null || true
+
+# اجرای امن apt-get update بدون متوقف شدن کل اسکریپت
+apt-get update -y || true
+
+# نصب پکیج‌های ضروری هسته
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl wget unzip jq python3 autossh socat sshpass iptables || DEBIAN_FRONTEND=noninteractive apt-get install -y curl python3 autossh socat
 
 INSTALL_DIR="/opt/v2ray-balancer"
 TUNNEL_DIR="/opt/reverse-tunnel"
