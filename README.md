@@ -14,7 +14,7 @@
 تنها با کپی و اجرای دستور زیر در محیط SSH سرور اوبونتو (ایران یا خارج)، کلیه بسته‌ها، وابستگی‌های سیستمی، هسته Xray، تونل‌های معکوس و رابط کاربری وب مستقر می‌شوند:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/username/nexustunnel/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RedBoy-011/nexustunnel/main/install.sh | sudo bash
 ```
 
 ### 🔄 دستور تک‌خطی بروزرسانی آنلاین (One-Liner Update):
