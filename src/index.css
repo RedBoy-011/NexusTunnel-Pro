@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Vazirmatn', Tahoma, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  html {
+    direction: rtl;
+    text-align: right;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv01' on, 'cv02' on;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    direction: rtl;
+    line-height: 1.6;
+    letter-spacing: -0.015em;
+  }
+
+  input, button, select, textarea {
+    font-family: inherit;
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono) !important;
+    direction: ltr;
+    text-align: left;
+    letter-spacing: normal;
+  }
+
+  /* Standard Persian numerals support for UI stats */
+  .persian-nums {
+    font-feature-settings: "ss01";
+  }
+
+  /* Custom styled scrollbars for terminals and loggers */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #090d16;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+}

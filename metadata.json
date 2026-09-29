@@ -1,0 +1,6 @@
+{
+  "name": "مدیریت و لودبالانسر اشتراک‌های VPN و پروکسی اوبونتو",
+  "description": "سامانه مدیریت سابسکرایب V2ray/Xray با تست پینگ واقعی، انتخاب ۸ کانفیگ برتر روی پورت‌های ۱۰۸۱ تا ۱۰۸۸ و لودبالانسر محلی روی ۱۰۸۰",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
