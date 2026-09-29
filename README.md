@@ -14,8 +14,14 @@
 تنها با کپی و اجرای دستور زیر در محیط SSH سرور اوبونتو (ایران یا خارج)، کلیه بسته‌ها، وابستگی‌های سیستمی، هسته Xray، تونل‌های معکوس و رابط کاربری وب مستقر می‌شوند:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RedBoy-011/nexustunnel/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/RedBoy-011/NexusTunnel-Pro/main/install.sh | sudo bash
 ```
+
+> ⚠️ **راهنمای رفع خطای `curl: (22) The requested URL returned error: 404`:**
+> اگر این خطا را در ترمینال سرور خود دریافت کردید، به دلیل یکی از ۳ مورد زیر است:
+> 1. **نام دقیق مخزن شما در گیت‌هاب `NexusTunnel-Pro` با حروف بزرگ است:** گیت‌هاب به حروف بزرگ و کوچک حساس است. نام مخزن `NexusTunnel-Pro` است، نه `nexustunnel`.
+> 2. **فایل `install.sh` هنوز در مخزن ایجاد نشده است:** کافیست در صفحه مخزن روی `Add file` کلیک کرده و فایل `install.sh` را قرار دهید.
+> 3. **مخزن (Repository) باید Public (عمومی) باشد.**
 
 ### 🔄 دستور تک‌خطی بروزرسانی آنلاین (One-Liner Update):
 ```bash

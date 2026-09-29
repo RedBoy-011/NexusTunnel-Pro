@@ -27,7 +27,7 @@ export const GitHubBook: React.FC<GitHubBookProps> = ({ onNotify }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ version: string; time: string } | null>(null);
 
-  const oneLinerInstall = `curl -fsSL https://raw.githubusercontent.com/username/nexustunnel/main/install.sh | sudo bash`;
+  const oneLinerInstall = `curl -fsSL https://raw.githubusercontent.com/RedBoy-011/NexusTunnel-Pro/main/install.sh | sudo bash`;
   const oneLinerUpdate = `sudo bash -c "cd /opt/v2ray-balancer && git pull origin main && npm install --production && systemctl restart v2ray-balancer.service"`;
 
   const handleCopy = (key: string, text: string) => {
@@ -125,6 +125,13 @@ export const GitHubBook: React.FC<GitHubBookProps> = ({ onNotify }) => {
           >
             {copiedKey === 'oneliner' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
+        </div>
+
+        {/* Notice on exact repo name */}
+        <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-300">
+          <p>
+            💡 نام دقیق ریپازیتوری شما <code className="text-emerald-400 font-mono">RedBoy-011/NexusTunnel-Pro</code> است. پس از افزودن فایل <code className="text-emerald-400 font-mono">install.sh</code> به مخزن، دستور بالا به صورت خودکار اجرا خواهد شد.
+          </p>
         </div>
       </div>
 
