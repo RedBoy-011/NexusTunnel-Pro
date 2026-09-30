@@ -115,36 +115,44 @@ get_ipv6() {
 
 generate_login_link() {
   IPV4=$(get_ipv4)
-  # درخواست توکن از پنل فعال نکسوس‌تانل
+  # استعلام یا ایجاد توکن از پنل فعال نکسوس‌تانل
   RES=$(curl -s -X POST http://127.0.0.1:8080/api/auth/cli-generate 2>/dev/null || echo "")
   
   TOKEN=$(echo "$RES" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-  OTP=$(echo "$RES" | grep -o '"otp":"[^"]*' | cut -d'"' -f4)
-  
   if [ -z "$TOKEN" ]; then
-    # تولید توکن لوکال در صورت لزوم
-    TOKEN="tk_$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 16 | head -n 1)"
-    OTP="$(cat /dev/urandom | tr -dc '0-9' | fold -w 6 | head -n 1)"
+    TOKEN="TK-$((100000 + RANDOM % 900000))"
   fi
+  PIN=$(echo "$TOKEN" | sed 's/TK-//')
 
   echo -e "\033[0;32m============================================================\033[0m"
-  echo -e "\033[1;32m  🔑 لینک جادویی ورود یکبارمصرف به پنل وب (NexusTunnel Pro)  \033[0m"
+  echo -e "\033[1;32m  🔑 لینک ورود مستقیم و فوری به پنل وب (NexusTunnel Pro)  \033[0m"
   echo -e "\033[0;32m============================================================\033[0m"
-  echo -e "کد اعتبارسنجی (OTP):    \033[1;33m$OTP\033[0m"
-  echo -e "توکن امنیتی (Token):   \033[0;36m$TOKEN\033[0m"
-  echo -e "مدت اعتبار توکن:        \033[0;35m۱۰ دقیقه (یکبار مصرف - Single Use)\033[0m"
+  echo -e "کد پین اعتبارسنجی (PIN):   \033[1;33m$PIN\033[0m (یا \033[0;36m$TOKEN\033[0m)"
+  echo -e "مدت اعتبار توکن:          \033[0;35m۳۰ دقیقه (انقضا پس از ورود)\033[0m"
   echo -e "------------------------------------------------------------"
-  echo -e "🌐 لینک ورود مستقیم به پنل وب با IP سرور:"
-  echo -e "👉 \033[1;32mhttp://$IPV4:8080/?token=$TOKEN\033[0m"
+  echo -e "🌐 لینک ورود مستقیم بدون نیاز به تایپ رمز (با IP عمومی):"
+  echo -e "👉 \033[1;32mhttp://$IPV4:8080/api/auth/direct-login?token=$TOKEN\033[0m"
   echo ""
-  echo -e "🔒 ورود محلی مستقیم (بدون توکن فقط از 127.0.0.1):"
+  echo -e "🔗 لینک جایگزین ورود:"
+  echo -e "👉 \033[0;36mhttp://$IPV4:8080/?token=$TOKEN\033[0m"
+  echo ""
+  echo -e "🔒 ورود مستقیم لوکال (تانل SSH بدون نیاز به هیچ رمزی):"
   echo -e "👉 \033[0;34mhttp://127.0.0.1:8080\033[0m"
   echo -e "\033[0;32m============================================================\033[0m"
 }
 
-# بررسی دستور مستقیم CLI
-if [ "$1" == "login-link" ] || [ "$1" == "token" ] || [ "$1" == "magic-link" ]; then
+# بررسی دستورات مستقیم خط فرمان
+if [ "$1" == "login" ] || [ "$1" == "login-link" ] || [ "$1" == "token" ] || [ "$1" == "magic-link" ]; then
   generate_login_link
+  exit 0
+elif [ "$1" == "no-auth" ] || [ "$1" == "disable-login" ]; then
+  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": false}' >/dev/null 2>&1
+  echo -e "\033[0;32m🔓 احراز هویت با موفقیت غیرفعال شد! اکنون پنل بدون نیاز به توکن باز است.\033[0m"
+  echo "آدرس پنل: http://$(get_ipv4):8080"
+  exit 0
+elif [ "$1" == "auth-on" ] || [ "$1" == "enable-login" ]; then
+  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": true}' >/dev/null 2>&1
+  echo -e "\033[0;32m🔒 احراز هویت با توکن امنیتی مجدداً فعال گردید.\033[0m"
   exit 0
 elif [ "$1" == "status" ]; then
   echo "📊 وضعیت سرویس پنل وب و لودبالانسر:"
@@ -269,6 +277,19 @@ while true; do
     7)
       echo ""
       generate_login_link
+      echo ""
+      echo -e "\033[1;33m⚙️ تنظیمات سریع دسترسی پنل:\033[0m"
+      echo "  1) بازگشت به منوی اصلی"
+      echo "  2) غیرفعال‌سازی قفل ورود (دسترسی مستقیم و آزاد به پنل وب)"
+      echo "  3) فعال‌سازی مجدد قفل ورود (الزام به ورود با توکن)"
+      read -p "انتخاب شما [1-3]: " achoice
+      if [ "$achoice" == "2" ]; then
+        curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": false}' >/dev/null 2>&1
+        echo -e "\033[0;32m🔓 قفل پنل غیرفعال شد! اکنون می‌توانید بدون نیاز به رمز یا توکن وارد پنل شوید.\033[0m"
+      elif [ "$achoice" == "3" ]; then
+        curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": true}' >/dev/null 2>&1
+        echo -e "\033[0;32m🔒 قفل امنیتی پنل مجدداً فعال گردید.\033[0m"
+      fi
       echo ""
       read -p "برای بازگشت به منو Enter را بزنید..."
       ;;

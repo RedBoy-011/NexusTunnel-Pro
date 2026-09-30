@@ -118,8 +118,16 @@ export default function App() {
     refreshAll();
     fetchAuthStatus();
 
-    // Check URL Magic Link Token (Zero-typing direct login)
+    // Check URL Magic Link Token or Direct Session (Zero-typing direct login)
     const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
+    if (sessionParam) {
+      localStorage.setItem('v2ray_panel_session', sessionParam);
+      showNotify('✨ ورود مستقیم به پنل با موفقیت انجام شد.', 'success');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      fetchAuthStatus();
+    }
+
     const tokenParam = urlParams.get('token');
     if (tokenParam) {
       (async () => {

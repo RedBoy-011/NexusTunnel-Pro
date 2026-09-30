@@ -38,6 +38,23 @@ apiRouter.post('/auth/magic-link', (req, res) => {
   res.json(links);
 });
 
+apiRouter.get('/auth/direct-login', (req, res) => {
+  const token = req.query.token as string;
+  if (!token) return res.redirect('/?error=missing_token');
+  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+  const result = authService.verifyToken(token, clientIp, req.headers['user-agent']);
+  if (result.success && result.sessionId) {
+    return res.redirect(`/?session=${result.sessionId}`);
+  }
+  return res.redirect(`/?error=invalid_token`);
+});
+
+apiRouter.post('/auth/toggle-bypass', (req, res) => {
+  const { authRequired } = req.body;
+  authService.updateSettings({ authRequired: Boolean(authRequired) });
+  res.json({ success: true, authRequired: Boolean(authRequired) });
+});
+
 apiRouter.get('/auth/verify', (req, res) => {
   const token = req.query.token as string;
   if (!token) {

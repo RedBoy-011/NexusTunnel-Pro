@@ -11,26 +11,34 @@ interface ActiveSession {
   userAgent?: string;
 }
 
+interface StoredToken extends OneTimeToken {
+  expiresAtMs: number;
+}
+
 class AuthService {
-  private tokens: Map<string, OneTimeToken> = new Map();
+  private tokens: Map<string, StoredToken> = new Map();
   private sessions: Map<string, ActiveSession> = new Map();
   private authRequired: boolean = true;
   private allowLocalhostBypass: boolean = true;
-  private tokenExpirySeconds: number = 600; // 10 minutes
-  private sessionDurationHours: number = 24;
+  private tokenExpirySeconds: number = 1800; // 30 minutes
+  private sessionDurationHours: number = 72; // 3 days
 
   constructor() {
     this.cleanupLoop();
-    // Generate an initial token for immediate convenience
     this.generateToken('cli-ssh');
   }
 
   public getStatus(clientIp?: string, sessionId?: string): AuthStatus {
     const isLocalhost =
+      !clientIp ||
       clientIp === '127.0.0.1' ||
       clientIp === '::1' ||
       clientIp === 'localhost' ||
-      clientIp?.startsWith('127.');
+      clientIp.includes('127.0.0.1') ||
+      clientIp.includes('::1') ||
+      clientIp.endsWith('::1') ||
+      clientIp.startsWith('127.') ||
+      clientIp === '::ffff:127.0.0.1';
 
     let isAuthenticated = false;
     let loginMethod: 'localhost-bypass' | 'otp-token' | 'none' = 'none';
@@ -48,14 +56,14 @@ class AuthService {
       }
     }
 
-    // Localhost bypass check
+    // Localhost bypass check (via SSH tunnel or local browser)
     if (!isAuthenticated && this.allowLocalhostBypass && isLocalhost) {
       isAuthenticated = true;
       loginMethod = 'localhost-bypass';
     }
 
     const activeTokens = Array.from(this.tokens.values()).filter(
-      (t) => !t.used && new Date(t.expiresAt).getTime() > Date.now()
+      (t) => !t.used && t.expiresAtMs > Date.now()
     ).length;
 
     return {
@@ -70,7 +78,7 @@ class AuthService {
 
   /**
    * Generates a secure, human-friendly 6-digit or prefixed OTP token
-   * Valid for 10 minutes, one-time use.
+   * Valid for 30 minutes, one-time use.
    */
   public generateToken(createdBy: 'cli-ssh' | 'api' | 'system' = 'cli-ssh'): OneTimeToken {
     // Generate secure 6-digit random number (100000 - 999999)
@@ -80,38 +88,50 @@ class AuthService {
     const now = Date.now();
     const expiresAtMs = now + this.tokenExpirySeconds * 1000;
 
-    const tokenObj: OneTimeToken = {
+    const tokenObj: StoredToken = {
       token: tokenCode,
       createdAt: new Date(now).toLocaleTimeString('fa-IR'),
       expiresAt: new Date(expiresAtMs).toLocaleTimeString('fa-IR'),
       expiresInSeconds: this.tokenExpirySeconds,
       used: false,
       createdBy,
+      expiresAtMs,
     };
 
     this.tokens.set(tokenCode, tokenObj);
-    // Also map simple pin for user convenience (e.g. user enters "928415" without "TK-")
     this.tokens.set(pin, tokenObj);
+    this.tokens.set(`tk-${pin}`, tokenObj);
 
     logger.addLog(
       'AUTH',
       'AUTH',
-      `توکن جدید موقت یک‌بار مصرف (${tokenCode}) توسط ${createdBy === 'cli-ssh' ? 'دستور SSH ترمینال' : 'داشبورد'} ایجاد شد (انقضا: ۱۰ دقیقه).`
+      `توکن ورود جدید (${tokenCode} / ${pin}) توسط ${createdBy === 'cli-ssh' ? 'ترمینال SSH' : 'پنل وب'} ایجاد شد.`
     );
 
     return tokenObj;
   }
 
   /**
-   * Verifies the OTP token. If valid, marks as used (One-Time) and creates a session.
+   * Verifies the OTP token. If valid, marks as used and creates a session.
    */
   public verifyToken(
     tokenInput: string,
     clientIp = '127.0.0.1',
     userAgent?: string
   ): { success: boolean; sessionId?: string; error?: string } {
-    const cleanToken = tokenInput.trim().toUpperCase();
-    const tokenObj = this.tokens.get(cleanToken);
+    if (!tokenInput || typeof tokenInput !== 'string') {
+      return { success: false, error: 'کد توکن وارد نشده است.' };
+    }
+
+    const cleanToken = tokenInput.trim();
+    const upperToken = cleanToken.toUpperCase();
+    const simplePin = cleanToken.replace(/^TK-?/i, '');
+
+    const tokenObj =
+      this.tokens.get(cleanToken) ||
+      this.tokens.get(upperToken) ||
+      this.tokens.get(`TK-${simplePin}`) ||
+      this.tokens.get(simplePin);
 
     if (!tokenObj) {
       logger.addLog('WARN', 'AUTH', `تلاش ناموفق برای ورود با توکن نامعتبر: ${cleanToken} از IP: ${clientIp}`);
@@ -119,18 +139,16 @@ class AuthService {
     }
 
     if (tokenObj.used) {
-      logger.addLog('WARN', 'AUTH', `تلاش برای استفاده مجدد از توکن باطل‌شده: ${cleanToken}`);
-      return { success: false, error: 'این توکن قبلاً استفاده شده و باطل گردیده است (یک‌بار مصرف).' };
+      logger.addLog('WARN', 'AUTH', `تلاش برای استفاده مجدد از توکن قبلاً استفاده شده: ${cleanToken}`);
+      return { success: false, error: 'این توکن قبلاً استفاده شده است (یک‌بار مصرف). جهت دریافت توکن جدید از ترمینال nexustunnel login را بزنید.' };
     }
 
-    const expiryTime = new Date(tokenObj.expiresAt).getTime();
-    // Safety check against duration
-    if (Date.now() > expiryTime && tokenObj.expiresInSeconds <= 0) {
+    if (Date.now() > tokenObj.expiresAtMs) {
       logger.addLog('WARN', 'AUTH', `توکن منقضی شده است: ${cleanToken}`);
       return { success: false, error: 'مهلت زمانی توکن به پایان رسیده است. لطفاً توکن جدید بسازید.' };
     }
 
-    // Mark as used immediately (Burn after reading)
+    // Mark as used
     tokenObj.used = true;
 
     // Create session
@@ -148,7 +166,7 @@ class AuthService {
     logger.addLog(
       'AUTH',
       'AUTH',
-      `ورود موفقیت‌آمیز به پنل با توکن یک‌بار مصرف ${cleanToken} از IP: ${clientIp}`
+      `ورود موفقیت‌آمیز به پنل با توکن ${cleanToken} از IP: ${clientIp}`
     );
 
     return { success: true, sessionId };
