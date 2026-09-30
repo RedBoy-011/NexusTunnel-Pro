@@ -12,7 +12,6 @@ import {
 import { logger } from './logger.js';
 
 class TunnelService {
-  private activeTunnelId: string = 'tunnel_1';
   private multiTunnelStrategy: MultiTunnelStrategy = 'load-balance';
   private autoDependenciesInstalled: boolean = true;
 
@@ -54,141 +53,12 @@ class TunnelService {
     },
   ];
 
-  private tunnels: TunnelInstance[] = [
-    {
-      id: 'tunnel_1',
-      name: 'تانل ۱: فرانکفورت، آلمان (سرور اصلی)',
-      remoteHost: '5.161.42.89',
-      remotePort: 22,
-      remoteUser: 'root',
-      remoteIpv6: '2a01:4f8:c012:345::1',
-      status: 'connected',
-      latencyMs: 38,
-      uptimeSeconds: 14820,
-      enabled: true,
-      priority: 1,
-      mode: 'primary',
-      sshKeyGenerated: true,
-      publicKeySnippet: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxY8q... reverse-tunnel@frankfurt',
-      lastSyncTime: new Date().toLocaleTimeString('fa-IR'),
-      rules: [
-        {
-          id: 'rule_8080',
-          protocol: 'TCP',
-          localPort: 8080,
-          remotePort: 8080,
-          description: 'نگاشت پورت سرویس وب محلی (Web Service 8080)',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'DualStack',
-          tunnelId: 'tunnel_1',
-        },
-        {
-          id: 'rule_1080',
-          protocol: 'TCP',
-          localPort: 1080,
-          remotePort: 1080,
-          description: 'نگاشت پورت شبکه محلی ۱۰۸۰ به سرور خارج',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'DualStack',
-          tunnelId: 'tunnel_1',
-        },
-        {
-          id: 'rule_udp_53',
-          protocol: 'UDP',
-          localPort: 53,
-          remotePort: 5353,
-          description: 'ترافیک DNS از طریق کپسوله‌سازی UDP over TCP (socat)',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'DualStack',
-          tunnelId: 'tunnel_1',
-        },
-      ],
-    },
-    {
-      id: 'tunnel_2',
-      name: 'تانل ۲: هلسینکی، فنلاند (سرور پشتیبان / پشته دوگانه IPv6)',
-      remoteHost: '95.217.163.44',
-      remotePort: 22,
-      remoteUser: 'root',
-      remoteIpv6: '2a01:4f9:c010:789::2',
-      status: 'connected',
-      latencyMs: 44,
-      uptimeSeconds: 12400,
-      enabled: true,
-      priority: 2,
-      mode: 'standby',
-      sshKeyGenerated: true,
-      publicKeySnippet: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICkM2p... reverse-tunnel@helsinki',
-      lastSyncTime: new Date().toLocaleTimeString('fa-IR'),
-      rules: [
-        {
-          id: 'rule_9090',
-          protocol: 'TCP',
-          localPort: 9090,
-          remotePort: 9090,
-          description: 'نگاشت پورت مانیتورینگ شبکه محلی به فنلاند',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'DualStack',
-          tunnelId: 'tunnel_2',
-        },
-        {
-          id: 'rule_3000',
-          protocol: 'TCP',
-          localPort: 3000,
-          remotePort: 3000,
-          description: 'نگاشت پورت اپلیکیشن محلی روی IPv6',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'IPv6',
-          tunnelId: 'tunnel_2',
-        },
-      ],
-    },
-    {
-      id: 'tunnel_3',
-      name: 'تانل ۳: آمستردام، هلند (لودبالانسر موازی)',
-      remoteHost: '185.190.24.12',
-      remotePort: 22,
-      remoteUser: 'root',
-      remoteIpv6: '2a01:4f8:162:101::5',
-      status: 'connected',
-      latencyMs: 49,
-      uptimeSeconds: 9800,
-      enabled: true,
-      priority: 3,
-      mode: 'load-balance',
-      sshKeyGenerated: true,
-      publicKeySnippet: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI9x8Lo... reverse-tunnel@amsterdam',
-      lastSyncTime: new Date().toLocaleTimeString('fa-IR'),
-      rules: [
-        {
-          id: 'rule_3306',
-          protocol: 'TCP',
-          localPort: 3306,
-          remotePort: 13306,
-          description: 'نگاشت پورت دیتابیس / سرویس بک‌اند به هلند',
-          enabled: true,
-          status: 'active',
-          lastSyncAt: new Date().toLocaleTimeString('fa-IR'),
-          ipFamily: 'DualStack',
-          tunnelId: 'tunnel_3',
-        },
-      ],
-    },
-  ];
+  private tunnels: TunnelInstance[] = [];
+  private activeTunnelId: string = '';
 
-  private currentLocalIp: string = '185.190.24.110';
-  private lastKnownLocalIp: string = '185.190.24.110';
-  private currentLocalIpv6: string = '2a01:4f8:c012:345::1';
+  private currentLocalIp: string = '127.0.0.1';
+  private lastKnownLocalIp: string = '127.0.0.1';
+  private currentLocalIpv6: string = '';
   private autoRecovery: boolean = true;
   private watchdogIntervalSec: number = 15;
 
@@ -200,9 +70,10 @@ class TunnelService {
     this.detectLocalIp();
   }
 
-  public getActiveTunnel(): TunnelInstance {
+  public getActiveTunnel(): TunnelInstance | null {
+    if (this.tunnels.length === 0) return null;
     const found = this.tunnels.find((t) => t.id === this.activeTunnelId);
-    return found || this.tunnels[0];
+    return found || this.tunnels[0] || null;
   }
 
   public getTunnels(): TunnelInstance[] {
@@ -228,6 +99,37 @@ class TunnelService {
 
   public getConfig(): TunnelConfig {
     const active = this.getActiveTunnel();
+    if (!active) {
+      return {
+        id: undefined,
+        name: 'هیچ تانلی تعریف نشده است',
+        isConfigured: false,
+        remoteHost: '',
+        remotePort: 22,
+        remoteUser: 'root',
+        sshKeyGenerated: false,
+        publicKeySnippet: '',
+        autoRecovery: this.autoRecovery,
+        watchdogIntervalSec: this.watchdogIntervalSec,
+        currentLocalIp: this.currentLocalIp,
+        lastKnownLocalIp: this.lastKnownLocalIp,
+        currentLocalIpv6: this.currentLocalIpv6,
+        remoteIpv6: undefined,
+        supportsIpv6: true,
+        ipStackMode: 'dual-stack',
+        status: 'unconfigured',
+        latencyMs: 0,
+        uptimeSeconds: 0,
+        lastSyncTime: 'هنوز تنظیمی انجام نشده',
+        rules: [],
+        tunnels: this.tunnels,
+        activeTunnelId: this.activeTunnelId,
+        multiTunnelStrategy: this.multiTunnelStrategy,
+        autoDependenciesInstalled: this.autoDependenciesInstalled,
+        coreDependencies: this.coreDependencies,
+      };
+    }
+
     return {
       id: active.id,
       name: active.name,
@@ -329,9 +231,6 @@ class TunnelService {
   }
 
   public deleteTunnel(id: string): boolean {
-    if (this.tunnels.length <= 1) {
-      throw new Error('حداقل یک تانل باید در سیستم باقی بماند.');
-    }
     const idx = this.tunnels.findIndex((t) => t.id === id);
     if (idx === -1) return false;
 
@@ -339,7 +238,7 @@ class TunnelService {
     this.tunnels = this.tunnels.filter((t) => t.id !== id);
 
     if (this.activeTunnelId === id) {
-      this.activeTunnelId = this.tunnels[0].id;
+      this.activeTunnelId = this.tunnels[0]?.id || '';
     }
 
     logger.addLog('WARN', 'TUNNEL', `تانل ${removed.name} (${removed.remoteHost}) حذف گردید.`);
@@ -413,6 +312,9 @@ class TunnelService {
 
   public addRule(rule: Omit<TunnelRule, 'id' | 'status' | 'lastSyncAt'>, tunnelId?: string): TunnelRule {
     const targetTunnel = tunnelId ? this.getTunnel(tunnelId) || this.getActiveTunnel() : this.getActiveTunnel();
+    if (!targetTunnel) {
+      throw new Error('ابتدا باید حداقل یک تانل ایجاد نمایید.');
+    }
     const newRule: TunnelRule = {
       ...rule,
       id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -493,6 +395,7 @@ class TunnelService {
 
   public triggerSimulatedDrop(): void {
     const active = this.getActiveTunnel();
+    if (!active) return;
     active.status = 'disconnected';
     logger.addLog('ERROR', 'WATCHDOG', `⚠️ قطعی در ${active.name} شناسایی شد! فرآیند نگهبان (Watchdog) وارد عمل شد.`);
 
@@ -533,6 +436,22 @@ class TunnelService {
 
   public generateSystemdService(tunnelId?: string): string {
     const target = tunnelId ? this.getTunnel(tunnelId) || this.getActiveTunnel() : this.getActiveTunnel();
+    if (!target) {
+      return `[Unit]
+Description=Reverse TCP/UDP Secure Tunnel (خام - منتظر ایجاد تانل)
+After=network.target network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/bin/bash -c "while true; do sleep 30; done"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+`;
+    }
+
     const rulesArgs = target.rules
       .filter((r) => r.enabled && r.protocol === 'TCP')
       .map((r) => `-R ${r.remotePort}:127.0.0.1:${r.localPort}`)

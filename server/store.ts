@@ -14,58 +14,7 @@ class SubscriptionStore {
   private lastTestedAt: string | null = null;
 
   constructor() {
-    this.seedDefaultSubscriptions();
     this.startScheduler();
-  }
-
-  private seedDefaultSubscriptions() {
-    // Provide realistic sample subscriptions for testing and immediate exploration
-    const sub1Id = 'sub_main_ir';
-    const sub1Name = 'اشتراک آلمان و فنلاند (سرعت بالا)';
-    const sampleVless1 = [
-      'vless://b7a69cb8-0112-4f81-8094-11883394a1d2@1.1.1.1:443?type=tcp&security=tls#🇩🇪 آلمان - فرانکفورت 01',
-      'vless://b7a69cb8-0112-4f81-8094-11883394a1d2@8.8.8.8:443?type=tcp&security=tls#🇫🇮 فنلاند - هلسینکی 02',
-      'vless://b7a69cb8-0112-4f81-8094-11883394a1d2@1.0.0.1:443?type=tcp&security=tls#🇳🇱 هلند - آمستردام 03',
-      'vless://b7a69cb8-0112-4f81-8094-11883394a1d2@9.9.9.9:443?type=tcp&security=tls#🇩🇪 آلمان - برلین 04',
-      'trojan://pass123456@1.1.1.1:443?security=tls#🇬🇧 انگلستان - لندن 05',
-      'vmess://eyJhZGQiOiIxLjAuMC4xIiwicG9ydCI6NDQzLCJpZCI6ImI3YTY5Y2I4LTAxMTItNGY4MS04MDk0LTExODgzMzk0YTFkMiIsImFpZCI6MCwibmV0Ijoid3MiLCJwYXRoIjoiL3ZtZXNzIiwicHMiOiLwn4em8J+HsCDZgdmG2YTYp9mG2K8gMDUifQ==',
-      'ss://YWVzLTI1Ni1nY206cGFzc3dvcmRAMS4xLjEuMTo4Mzg4#🇸🇪 سوئد - استکهلم 06',
-    ].join('\n');
-
-    const sub2Id = 'sub_cdn_direct';
-    const sub2Name = 'اشتراک کلودفلر کلین آی‌پی';
-    const sampleVless2 = [
-      'vless://6c934371-d602-4fc9-b68e-289569fa1e62@104.16.132.229:443?type=tcp&security=tls#⚡ کلودفلر CDN - سرور ۱',
-      'vless://6c934371-d602-4fc9-b68e-289569fa1e62@104.16.133.229:443?type=tcp&security=tls#⚡ کلودفلر CDN - سرور ۲',
-      'vless://6c934371-d602-4fc9-b68e-289569fa1e62@172.67.182.203:443?type=tcp&security=tls#⚡ کلودفلر CDN - سرور ۳',
-      'trojan://cfpass@104.17.150.100:443?security=tls#⚡ تروجان CDN کلودفلر',
-      'vless://6c934371-d602-4fc9-b68e-289569fa1e62@104.18.25.100:443?type=tcp&security=tls#⚡ کلودفلر CDN - سرور ۴',
-      'vless://6c934371-d602-4fc9-b68e-289569fa1e62@198.41.200.1:443?type=tcp&security=tls#⚡ Anycast آی‌پی تمیز',
-    ].join('\n');
-
-    this.subscriptions.set(sub1Id, {
-      id: sub1Id,
-      name: sub1Name,
-      url: 'https://sub.example.com/api/v1/client/subscribe?token=demo1',
-      enabled: true,
-      createdAt: new Date().toLocaleDateString('fa-IR'),
-      configsCount: 7,
-      activeCount: 7,
-    });
-    this.subscriptionRawContent.set(sub1Id, sampleVless1);
-
-    this.subscriptions.set(sub2Id, {
-      id: sub2Id,
-      name: sub2Name,
-      url: 'https://fast-v2ray.org/sub/cloud-direct',
-      enabled: true,
-      createdAt: new Date().toLocaleDateString('fa-IR'),
-      configsCount: 6,
-      activeCount: 6,
-    });
-    this.subscriptionRawContent.set(sub2Id, sampleVless2);
-
-    this.refreshAllConfigs();
   }
 
   public getSubscriptions(): Subscription[] {

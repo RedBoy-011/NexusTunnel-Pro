@@ -595,18 +595,16 @@ export const NetworkTunneling: React.FC<NetworkTunnelingProps> = ({ onNotify, on
                     تاخیر: <strong className="text-emerald-400">{t.latencyMs}ms</strong>
                   </span>
                   <span>{t.rules.length} پورت نگاشت‌شده</span>
-                  {tunnels.length > 1 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteTunnel(t.id, t.name);
-                      }}
-                      className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="حذف این تانل"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTunnel(t.id, t.name);
+                    }}
+                    className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    title="حذف این تانل"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             );

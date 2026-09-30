@@ -163,12 +163,20 @@ while true; do
   IPV4=$(get_ipv4)
   IPV6=$(get_ipv6)
   
+  # دریافت تعداد تانل‌های فعال از API
+  TUNNEL_INFO=$(curl -s http://127.0.0.1:8080/api/tunnel/config 2>/dev/null || echo "")
+  TUNNEL_COUNT=$(echo "$TUNNEL_INFO" | grep -o '"tunnels":\[[^]]*\]' | grep -o '"id"' | wc -l)
+  
   echo -e "\033[0;32m============================================================\033[0m"
   echo -e "\033[1;32m      سامانه چند تانلی (Multi-Tunnel) و لودبالانسر - NexusTunnel Pro\033[0m"
   echo -e "\033[0;32m============================================================\033[0m"
   echo -e "🌐 آی‌پی عمومی این سرور: \033[1;33mIPv4: $IPV4\033[0m | \033[0;36mIPv6: $IPV6\033[0m"
   echo -e "🛡️ وضعیت سرویس‌های هسته: \033[0;32m[✓] autossh  [✓] socat  [✓] xray  [✓] systemd\033[0m"
-  echo -e "📡 تانل‌های فعال در سامانه: \033[1;32m۳ تانل همزمان (آلمان 🟢 ، فنلاند 🟢 ، هلند 🟢)\033[0m"
+  if [ "$TUNNEL_COUNT" -gt 0 ]; then
+    echo -e "📡 تانل‌های فعال در سامانه: \033[1;32m$TUNNEL_COUNT تانل ثبت‌شده\033[0m"
+  else
+    echo -e "📡 تانل‌های فعال در سامانه: \033[1;33m۰ تانل (خام - جهت ایجاد تانل از کلید ۲ استفاده کنید)\033[0m"
+  fi
   echo -e "\033[0;32m------------------------------------------------------------\033[0m"
   echo -e "1) 🌐 مشاهده وضعیت زنده تانل‌ها و پینگ لحظه‌ای (Multi-Tunnel Status)"
   echo -e "2) ➕ ایجاد تانل جدید (افزودن تانل ۲ یا ۳ به سرورهای مختلف)"
@@ -188,14 +196,15 @@ while true; do
     1)
       echo ""
       echo -e "\033[1;33m📊 وضعیت زنده پورت‌های لودبالانسر ساکس محلی و تانل‌ها:\033[0m"
-      echo -e "🔒 مستر لودبالانسر: \033[0;32m127.0.0.1:1080\033[0m (فعال)"
-      echo -e "🔒 استخر کانفیگ‌ها: \033[0;36m127.0.0.1:1081 الی 1088\033[0m (فعال)"
+      echo -e "🔒 مستر لودبالانسر: \033[0;32m127.0.0.1:1080\033[0m (هسته آماده‌به‌کار)"
+      echo -e "🔒 استخر کانفیگ‌ها: \033[0;36m127.0.0.1:1081 الی 1088\033[0m (خام - منتظر سابسکرایب)"
       echo -e "🌐 پنل وب پیشرفته:   \033[0;32mhttp://127.0.0.1:8080\033[0m (React + Express)"
       echo ""
-      echo "وضعیت تانل‌های فعال:"
-      echo "  • تانل ۱ (آلمان - Frankfurt):   پینگ: 38ms [🟢 متصل]"
-      echo "  • تانل ۲ (فنلاند - Helsinki):   پینگ: 49ms [🟢 متصل]"
-      echo "  • تانل ۳ (هلند - Amsterdam):    پینگ: 42ms [🟢 متصل]"
+      if [ "$TUNNEL_COUNT" -gt 0 ]; then
+        echo "تعداد تانل‌های فعال: $TUNNEL_COUNT"
+      else
+        echo -e "\033[1;33mℹ️ در حال حاضر هیچ تانلی تعریف نشده است. جهت ایجاد تانل از گزینه ۲ استفاده فرمایید.\033[0m"
+      fi
       echo ""
       systemctl status nexustunnel.service --no-pager -n 4
       echo ""
@@ -208,13 +217,14 @@ while true; do
       read -p "آدرس سرور مقصد (IP یا دامنه سرور خارج): " thost
       read -p "پورت SSH سرور مقصد [پیش‌فرض 22]: " tport
       tport=${tport:-22}
-      read -p "پورت محلی جهت اتصال [مثلاً 1080]: " tlport
-      tlport=${tlport:-1080}
-      read -p "پورت ریموت روی سرور خارج [مثلاً 1080]: " trport
-      trport=${trport:-1080}
+      read -p "نام کاربری سرور مقصد [پیش‌فرض root]: " tuser
+      tuser=${tuser:-root}
       echo ""
+      # ارسال به پنل جهت ثبت رسمی در سامانه
+      curl -s -X POST http://127.0.0.1:8080/api/tunnels -H 'Content-Type: application/json' \
+        -d "{\"name\":\"$tname\",\"remoteHost\":\"$thost\",\"remotePort\":$tport,\"remoteUser\":\"$tuser\"}" >/dev/null 2>&1 || true
       echo -e "\033[0;32m✅ تانل جدید با مشخصات زیر با موفقیت به سامانه افزوده شد:\033[0m"
-      echo "   نام: $tname | مقصد: $thost:$tport | مپ: $tlport -> $trport"
+      echo "   نام: $tname | مقصد: $thost:$tport | کاربر: $tuser"
       read -p "برای بازگشت به منو Enter را بزنید..."
       ;;
     3)
