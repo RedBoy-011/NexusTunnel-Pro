@@ -113,46 +113,68 @@ get_ipv6() {
   curl -s -6 -m 2 https://api6.ipify.org 2>/dev/null || echo "2a07:3903:0:2::4fe"
 }
 
-generate_login_link() {
+get_auth_info() {
+  curl -s http://127.0.0.1:8080/api/auth/cli-info 2>/dev/null || echo "{}"
+}
+
+show_login_info() {
   IPV4=$(get_ipv4)
-  # استعلام یا ایجاد توکن از پنل فعال نکسوس‌تانل
-  RES=$(curl -s -X POST http://127.0.0.1:8080/api/auth/cli-generate 2>/dev/null || echo "")
-  
-  TOKEN=$(echo "$RES" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-  if [ -z "$TOKEN" ]; then
-    TOKEN="TK-$((100000 + RANDOM % 900000))"
-  fi
-  PIN=$(echo "$TOKEN" | sed 's/TK-//')
+  INFO=$(get_auth_info)
+  PASS=$(echo "$INFO" | grep -o '"password":"[^"]*' | cut -d'"' -f4)
+  AUTH_REQ=$(echo "$INFO" | grep -o '"authRequired":true')
+
+  PASS=${PASS:-"admin123"}
 
   echo -e "\033[0;32m============================================================\033[0m"
-  echo -e "\033[1;32m  🔑 لینک ورود مستقیم و فوری به پنل وب (NexusTunnel Pro)  \033[0m"
+  echo -e "\033[1;32m       🔐 مشخصات و رمز عبور ورود به پنل وب NexusTunnel Pro       \033[0m"
   echo -e "\033[0;32m============================================================\033[0m"
-  echo -e "کد پین اعتبارسنجی (PIN):   \033[1;33m$PIN\033[0m (یا \033[0;36m$TOKEN\033[0m)"
-  echo -e "مدت اعتبار توکن:          \033[0;35m۳۰ دقیقه (انقضا پس از ورود)\033[0m"
-  echo -e "------------------------------------------------------------"
-  echo -e "🌐 لینک ورود مستقیم بدون نیاز به تایپ رمز (با IP عمومی):"
-  echo -e "👉 \033[1;32mhttp://$IPV4:8080/api/auth/direct-login?token=$TOKEN\033[0m"
-  echo ""
-  echo -e "🔗 لینک جایگزین ورود:"
-  echo -e "👉 \033[0;36mhttp://$IPV4:8080/?token=$TOKEN\033[0m"
-  echo ""
-  echo -e "🔒 ورود مستقیم لوکال (تانل SSH بدون نیاز به هیچ رمزی):"
-  echo -e "👉 \033[0;34mhttp://127.0.0.1:8080\033[0m"
+  echo -e "🌐 آدرس پنل در مرورگر:   \033[1;32mhttp://$IPV4:8080\033[0m"
+  echo -e "🔒 آدرس لوکال (تانل SSH): \033[0;34mhttp://127.0.0.1:8080\033[0m"
+  if [ -n "$AUTH_REQ" ]; then
+    echo -e "🛡️ وضعیت قفل امنیتی:      \033[1;32m[فعال 🔒 - ورود فقط با رمز]\033[0m"
+    echo -e "🔑 رمز عبور فعلی پنل:     \033[1;33m$PASS\033[0m"
+  else
+    echo -e "🛡️ وضعیت قفل امنیتی:      \033[1;33m[غیرفعال 🔓 - ورود آزاد بدون رمز]\033[0m"
+    echo -e "🔑 رمز عبور ذخیره‌شده:    \033[0;37m$PASS\033[0m"
+  fi
   echo -e "\033[0;32m============================================================\033[0m"
 }
 
+set_new_password() {
+  local new_p="$1"
+  if [ -z "$new_p" ]; then
+    echo ""
+    read -p "🔑 لطفاً رمز عبور جدید پنل را وارد نمایید (حداقل ۳ کاراکتر): " new_p
+  fi
+
+  if [ -z "$new_p" ] || [ ${#new_p} -lt 3 ]; then
+    echo -e "\033[0;31m❌ خطا: رمز عبور باید حداقل دارای ۳ کاراکتر باشد.\033[0m"
+    return 1
+  fi
+
+  RES=$(curl -s -X POST http://127.0.0.1:8080/api/auth/password \
+    -H 'Content-Type: application/json' \
+    -d "{\"password\":\"$new_p\"}" 2>/dev/null || echo "")
+
+  echo -e "\033[0;32m✅ رمز عبور پنل با موفقیت تغییر یافت!\033[0m"
+  echo -e "🔑 رمز جدید شما: \033[1;33m$new_p\033[0m"
+}
+
 # بررسی دستورات مستقیم خط فرمان
-if [ "$1" == "login" ] || [ "$1" == "login-link" ] || [ "$1" == "token" ] || [ "$1" == "magic-link" ]; then
-  generate_login_link
+if [ "$1" == "login" ] || [ "$1" == "info" ] || [ "$1" == "pass" ]; then
+  show_login_info
+  exit 0
+elif [ "$1" == "password" ] || [ "$1" == "set-password" ]; then
+  set_new_password "$2"
   exit 0
 elif [ "$1" == "no-auth" ] || [ "$1" == "disable-login" ]; then
-  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": false}' >/dev/null 2>&1
-  echo -e "\033[0;32m🔓 احراز هویت با موفقیت غیرفعال شد! اکنون پنل بدون نیاز به توکن باز است.\033[0m"
+  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle -H 'Content-Type: application/json' -d '{"enabled": false}' >/dev/null 2>&1
+  echo -e "\033[0;32m🔓 قفل ورود غیرفعال شد! پنل وب اکنون بدون نیاز به رمز باز است.\033[0m"
   echo "آدرس پنل: http://$(get_ipv4):8080"
   exit 0
 elif [ "$1" == "auth-on" ] || [ "$1" == "enable-login" ]; then
-  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": true}' >/dev/null 2>&1
-  echo -e "\033[0;32m🔒 احراز هویت با توکن امنیتی مجدداً فعال گردید.\033[0m"
+  curl -s -X POST http://127.0.0.1:8080/api/auth/toggle -H 'Content-Type: application/json' -d '{"enabled": true}' >/dev/null 2>&1
+  echo -e "\033[0;32m🔒 قفل امنیتی پنل فعال گردید (ورود نیازمند رمز عبور است).\033[0m"
   exit 0
 elif [ "$1" == "status" ]; then
   echo "📊 وضعیت سرویس پنل وب و لودبالانسر:"
@@ -192,7 +214,7 @@ while true; do
   echo -e "4) ➕ افزودن پورت جدید برای تانل (پشتیبانی Dual-Stack با UDP یا TCP با socat)"
   echo -e "5) 📋 مشاهده پورت‌ها و قوانین فعال"
   echo -e "6) 🔄 بررسی سلامت تانل‌ها و ریستارت خودکار سرویس"
-  echo -e "7) 🔑 تولید لینک جادویی ورود به پنل (Magic Link & One-Time Token)"
+  echo -e "7) 🔐 مدیریت رمز عبور پنل (مشاهده، تغییر و فعال/غیرفعال‌سازی قفل)"
   echo -e "8) 🌐 نمایش آدرس لوکال (ورود مستقیم و بدون توکن فقط از 127.0.0.1)"
   echo -e "9) 🚀 بروزرسانی به آخرین نسخه از گیت‌هاب (Update from GitHub)"
   echo -e "10) 🌐 تست وضعیت پشته دوگانه (Dual-Stack IPv4 + IPv6)"
@@ -228,7 +250,6 @@ while true; do
       read -p "نام کاربری سرور مقصد [پیش‌فرض root]: " tuser
       tuser=${tuser:-root}
       echo ""
-      # ارسال به پنل جهت ثبت رسمی در سامانه
       curl -s -X POST http://127.0.0.1:8080/api/tunnels -H 'Content-Type: application/json' \
         -d "{\"name\":\"$tname\",\"remoteHost\":\"$thost\",\"remotePort\":$tport,\"remoteUser\":\"$tuser\"}" >/dev/null 2>&1 || true
       echo -e "\033[0;32m✅ تانل جدید با مشخصات زیر با موفقیت به سامانه افزوده شد:\033[0m"
@@ -262,7 +283,7 @@ while true; do
       echo -e "\033[1;33m📋 پورت‌ها و قوانین فعال تانل:\033[0m"
       echo "127.0.0.1:1080 -> Master Load Balancer (SOCKS5)"
       echo "127.0.0.1:1081..1088 -> Individual Top 8 SOCKS5"
-      echo "0.0.0.0:8080   -> Modern React Dashboard (One-Time Token Protected)"
+      echo "0.0.0.0:8080   -> Modern React Dashboard"
       echo ""
       read -p "برای بازگشت به منو Enter را بزنید..."
       ;;
@@ -275,23 +296,32 @@ while true; do
       read -p "برای بازگشت به منو Enter را بزنید..."
       ;;
     7)
-      echo ""
-      generate_login_link
-      echo ""
-      echo -e "\033[1;33m⚙️ تنظیمات سریع دسترسی پنل:\033[0m"
-      echo "  1) بازگشت به منوی اصلی"
-      echo "  2) غیرفعال‌سازی قفل ورود (دسترسی مستقیم و آزاد به پنل وب)"
-      echo "  3) فعال‌سازی مجدد قفل ورود (الزام به ورود با توکن)"
-      read -p "انتخاب شما [1-3]: " achoice
-      if [ "$achoice" == "2" ]; then
-        curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": false}' >/dev/null 2>&1
-        echo -e "\033[0;32m🔓 قفل پنل غیرفعال شد! اکنون می‌توانید بدون نیاز به رمز یا توکن وارد پنل شوید.\033[0m"
-      elif [ "$achoice" == "3" ]; then
-        curl -s -X POST http://127.0.0.1:8080/api/auth/toggle-bypass -H 'Content-Type: application/json' -d '{"authRequired": true}' >/dev/null 2>&1
-        echo -e "\033[0;32m🔒 قفل امنیتی پنل مجدداً فعال گردید.\033[0m"
-      fi
-      echo ""
-      read -p "برای بازگشت به منو Enter را بزنید..."
+      while true; do
+        clear
+        show_login_info
+        echo ""
+        echo -e "\033[1;33m⚙️ گزینه‌های مدیریت رمز عبور:\033[0m"
+        echo "  1) ✏️ تغییر رمز عبور پنل وب"
+        echo "  2) 🔓 غیرفعال‌سازی رمز عبور (ورود کاملاً آزاد به پنل)"
+        echo "  3) 🔒 فعال‌سازی رمز عبور (الزام به ورود رمز)"
+        echo "  0) ↩️ بازگشت به منوی قبلی"
+        echo "------------------------------------------------------------"
+        read -p "انتخاب شما [0-3]: " achoice
+        if [ "$achoice" == "1" ]; then
+          set_new_password
+          read -p "جهت ادامه Enter را بزنید..."
+        elif [ "$achoice" == "2" ]; then
+          curl -s -X POST http://127.0.0.1:8080/api/auth/toggle -H 'Content-Type: application/json' -d '{"enabled": false}' >/dev/null 2>&1
+          echo -e "\033[0;32m🔓 قفل پنل غیرفعال شد! اکنون بدون نیاز به هیچ رمزی می‌توانید وارد پنل شوید.\033[0m"
+          read -p "جهت ادامه Enter را بزنید..."
+        elif [ "$achoice" == "3" ]; then
+          curl -s -X POST http://127.0.0.1:8080/api/auth/toggle -H 'Content-Type: application/json' -d '{"enabled": true}' >/dev/null 2>&1
+          echo -e "\033[0;32m🔒 قفل امنیتی پنل مجدداً فعال گردید.\033[0m"
+          read -p "جهت ادامه Enter را بزنید..."
+        elif [ "$achoice" == "0" ]; then
+          break
+        fi
+      done
       ;;
     8)
       echo ""
@@ -358,8 +388,8 @@ echo -e "🌐 آدرس پنل وب:                \033[1;32mhttp://127.0.0.1:80
 echo -e "🔒 پورت لودبالانسر مستر:       \033[1;33m127.0.0.1:1080\033[0m"
 echo -e "🔒 پورت‌های استخر کانفیگ‌ها:    \033[0;36m127.0.0.1:1081 الی 1088\033[0m"
 echo ""
-echo -e "🔑 ایجاد لینک ورود جادویی با توکن یکبار مصرف:"
-/usr/local/bin/nexustunnel login-link
+echo -e "🔐 مشخصات ورود به پنل وب:"
+/usr/local/bin/nexustunnel login
 echo ""
 echo -e "💻 برای دسترسی به منوی ترمینال:"
 echo -e "   \033[1;36msudo nexustunnel\033[0m"

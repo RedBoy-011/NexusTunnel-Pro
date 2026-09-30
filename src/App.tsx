@@ -118,40 +118,14 @@ export default function App() {
     refreshAll();
     fetchAuthStatus();
 
-    // Check URL Magic Link Token or Direct Session (Zero-typing direct login)
+    // Check URL direct session if available
     const urlParams = new URLSearchParams(window.location.search);
     const sessionParam = urlParams.get('session');
     if (sessionParam) {
       localStorage.setItem('v2ray_panel_session', sessionParam);
-      showNotify('✨ ورود مستقیم به پنل با موفقیت انجام شد.', 'success');
+      showNotify('✨ ورود به پنل با موفقیت انجام شد.', 'success');
       window.history.replaceState({}, document.title, window.location.pathname);
       fetchAuthStatus();
-    }
-
-    const tokenParam = urlParams.get('token');
-    if (tokenParam) {
-      (async () => {
-        try {
-          const res = await fetch('/api/auth/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenParam.trim() }),
-          });
-          const data = await res.json();
-          if (res.ok && data.success && data.sessionId) {
-            localStorage.setItem('v2ray_panel_session', data.sessionId);
-            showNotify('✨ ورود موفقیت‌آمیز به پنل با لینک مستقیم جادویی انجام شد!', 'success');
-            // Clean token from address bar for security
-            window.history.replaceState({}, document.title, window.location.pathname);
-            await fetchAuthStatus();
-          } else {
-            showNotify(data.error || 'این لینک ورود منقضی شده یا قبلاً استفاده شده است.', 'error');
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        } catch {
-          // ignore
-        }
-      })();
     }
 
     const interval = setInterval(async () => {

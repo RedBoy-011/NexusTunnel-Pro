@@ -21,68 +21,36 @@ apiRouter.get('/auth/status', (req, res) => {
   res.json(status);
 });
 
-apiRouter.post('/auth/generate', (req, res) => {
-  const token = authService.generateToken('api');
-  res.json(token);
-});
-
-apiRouter.post('/auth/cli-generate', (req, res) => {
-  const token = authService.generateToken('cli-ssh');
-  res.json(token);
-});
-
-apiRouter.post('/auth/magic-link', (req, res) => {
-  const host = (req.headers.host || '').split(':')[0];
-  const port = parseInt((req.headers.host || '').split(':')[1] || '8080', 10);
-  const links = authService.generateMagicLink(host, port);
-  res.json(links);
-});
-
-apiRouter.get('/auth/direct-login', (req, res) => {
-  const token = req.query.token as string;
-  if (!token) return res.redirect('/?error=missing_token');
-  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
-  const result = authService.verifyToken(token, clientIp, req.headers['user-agent']);
-  if (result.success && result.sessionId) {
-    return res.redirect(`/?session=${result.sessionId}`);
-  }
-  return res.redirect(`/?error=invalid_token`);
-});
-
-apiRouter.post('/auth/toggle-bypass', (req, res) => {
-  const { authRequired } = req.body;
-  authService.updateSettings({ authRequired: Boolean(authRequired) });
-  res.json({ success: true, authRequired: Boolean(authRequired) });
-});
-
-apiRouter.get('/auth/verify', (req, res) => {
-  const token = req.query.token as string;
-  if (!token) {
-    return res.status(400).json({ error: 'کد توکن الزامی است.' });
-  }
+apiRouter.post('/auth/login', (req, res) => {
+  const { password } = req.body;
   const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
   const userAgent = req.headers['user-agent'] || '';
-  const result = authService.verifyToken(token, clientIp, userAgent);
-
+  const result = authService.login(password, clientIp, userAgent);
   if (!result.success) {
     return res.status(401).json(result);
   }
   res.json(result);
 });
 
-apiRouter.post('/auth/verify', (req, res) => {
-  const { token } = req.body;
-  if (!token || typeof token !== 'string') {
-    return res.status(400).json({ error: 'کد توکن الزامی است.' });
+apiRouter.post('/auth/password', (req, res) => {
+  try {
+    const { password } = req.body;
+    const result = authService.setPassword(password);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'خطا در تغییر رمز عبور' });
   }
-  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
-  const userAgent = req.headers['user-agent'] || '';
-  const result = authService.verifyToken(token, clientIp, userAgent);
+});
 
-  if (!result.success) {
-    return res.status(401).json(result);
-  }
+apiRouter.post('/auth/toggle', (req, res) => {
+  const { enabled } = req.body;
+  const result = authService.toggleAuth(enabled);
   res.json(result);
+});
+
+apiRouter.get('/auth/cli-info', (_req, res) => {
+  const info = authService.getCliAuthInfo();
+  res.json(info);
 });
 
 apiRouter.post('/auth/logout', (req, res) => {
@@ -91,22 +59,6 @@ apiRouter.post('/auth/logout', (req, res) => {
     authService.logout(sessionId);
   }
   res.json({ success: true });
-});
-
-apiRouter.get('/auth/tokens', (req, res) => {
-  res.json(authService.getActiveTokens());
-});
-
-apiRouter.post('/auth/settings', (req, res) => {
-  const { authRequired, allowLocalhostBypass } = req.body;
-  authService.updateSettings({ authRequired, allowLocalhostBypass });
-  res.json({ success: true });
-});
-
-apiRouter.get('/auth/cli-script', (req, res) => {
-  const script = authService.generateCliTokenScript();
-  res.setHeader('Content-Type', 'text/x-shellscript; charset=utf-8');
-  res.send(script);
 });
 
 // ==========================================

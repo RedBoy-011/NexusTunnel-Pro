@@ -150,29 +150,18 @@ export interface LogBufferStats {
   newestLogTime?: string;
 }
 
-export interface OneTimeToken {
-  token: string;
-  createdAt: string;
-  expiresAt: string;
-  expiresInSeconds: number;
-  used: boolean;
-  createdBy: 'cli-ssh' | 'api' | 'system';
-}
-
 export interface AuthStatus {
   authRequired: boolean;
-  allowLocalhostBypass: boolean;
   isAuthenticated: boolean;
   sessionExpiry?: string;
-  activeTokensCount: number;
-  loginMethod?: 'localhost-bypass' | 'otp-token' | 'none';
+  loginMethod?: 'localhost-bypass' | 'password' | 'none';
+  hasPassword?: boolean;
 }
 
-export interface MagicLinkInfo {
-  token: string;
-  localUrl: string;
-  publicIpUrl: string;
-  remoteTunnelUrl: string;
-  expiresAt: string;
-  expiresInSeconds: number;
+export interface CliAuthInfo {
+  authRequired: boolean;
+  password: string;
+  port: number;
+  publicIp: string;
+  panelUrl: string;
 }

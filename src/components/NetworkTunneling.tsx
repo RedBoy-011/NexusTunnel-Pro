@@ -449,17 +449,6 @@ export const NetworkTunneling: React.FC<NetworkTunnelingProps> = ({ onNotify, on
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {onOpenLoginModal && (
-            <button
-              onClick={onOpenLoginModal}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-colors"
-              title="تولید لینک ورود مستقیم بدون نیاز به تایپ پسورد"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>لینک جادویی ورود (Magic Link)</span>
-            </button>
-          )}
-
           <button
             onClick={() => setShowAddTunnelModal(true)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"

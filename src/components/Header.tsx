@@ -52,29 +52,36 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Bar & Real-time Indicator */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Auth Token Button */}
-            <button
-              onClick={onOpenLogin}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                authStatus?.isAuthenticated
-                  ? 'bg-slate-800 border-emerald-500/30 text-emerald-300 hover:bg-slate-700'
-                  : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
-              }`}
-              title="ورود با توکن موقت یا بررسی وضعیت دسترسی"
-            >
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span>
-                {authStatus?.loginMethod === 'otp-token'
-                  ? 'سشن توکن فعال'
-                  : 'لینک جادویی / ورود با توکن'}
+            {/* Auth Button */}
+            {!authStatus?.authRequired ? (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>ورود آزاد (بدون رمز)</span>
               </span>
-            </button>
+            ) : (
+              <button
+                onClick={onOpenLogin}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  authStatus?.isAuthenticated
+                    ? 'bg-slate-800 border-emerald-500/30 text-emerald-300 hover:bg-slate-700'
+                    : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                }`}
+                title="ورود با رمز عبور یا تغییر نشست"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>
+                  {authStatus?.isAuthenticated
+                    ? 'ورود مجاز (نشست فعال)'
+                    : 'ورود با رمز عبور'}
+                </span>
+              </button>
+            )}
 
-            {authStatus?.loginMethod === 'otp-token' && (
+            {authStatus?.isAuthenticated && authStatus?.loginMethod === 'password' && (
               <button
                 onClick={onLogout}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 transition-colors"
-                title="خروج از سشن توکن"
+                title="خروج از پنل"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
